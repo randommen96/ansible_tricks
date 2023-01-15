@@ -1,0 +1,4 @@
+[testemptygroup]
+
+[all:vars]
+ansible_user=debian

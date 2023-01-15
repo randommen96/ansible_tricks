@@ -1,0 +1,13 @@
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  vars_files:
+    - vars/vars.yml
+  pre_tasks:
+  - add_host:
+      name: "{{ vm_host }}"
+    when: groups['all'] | length == 0 and vm_host is defined
+
+- hosts: all
+  tasks:
+    - import_tasks: tasks/ping.yml

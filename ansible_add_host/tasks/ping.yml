@@ -1,0 +1,11 @@
+- name: ping!
+  ansible.builtin.ping:
+
+- name: Change file ownership, group and permissions
+  become: true
+  ansible.builtin.file:
+    path: /etc/foo.conf
+    owner: root
+    group: root
+    mode: '0644'
+    state: touch

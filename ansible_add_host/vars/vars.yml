@@ -1,0 +1,5 @@
+---
+  # variables for the deployment
+  vm_host: 4.3.2.1
+  # variables of the proxmox host
+  prox_host: 1.2.3.4
