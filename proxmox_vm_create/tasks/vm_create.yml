@@ -1,0 +1,129 @@
+---
+- name: create the VM
+  community.general.proxmox_kvm:
+    api_host: "{{ prox_ip }}"
+    node: "{{ prox_host }}"
+    target:  "{{ target_prox }}"
+    api_user: '{{ api_username }}'
+    api_password: '{{ api_passwd }}'
+    clone: cloud-init-base
+    name: '{{ vm_name }}'
+    vmid: '{{ vm_template_id }}'
+    newid: '{{ vm_id }}'
+    storage: '{{ vm_storage_location }}'
+    timeout: 3600
+
+#only needed when 2 nics are available. 
+- name: update the vm with the new info 2 nics
+  community.general.proxmox_kvm:
+    api_host: "{{ prox_ip }}"
+    node:  "{{ target_prox }}"
+    api_user: '{{ api_username }}'
+    api_password: '{{ api_passwd }}'
+    name: '{{ vm_name }}'
+    vmid: '{{ vm_id }}'
+    memory: '{{ vm_mem }}'
+    cores: '{{ vm_cores }}'
+    nameservers:
+      - '1.1.1.1'
+      - '8.8.8.8'
+    ipconfig:
+      ipconfig0: 'ip={{ wan_ip }},gw={{ wan_gw }}'
+      ipconfig1: 'ip={{ lan_ip }},gw={{ lan_gw }}'
+    update: yes
+  when: lan_ip is defined
+
+- name: update the vm with the new info
+  community.general.proxmox_kvm:
+    api_host: "{{ prox_ip }}"
+    node:  "{{ target_prox }}"
+    api_user: '{{ api_username }}'
+    api_password: '{{ api_passwd }}'
+    name: '{{ vm_name }}'
+    vmid: '{{ vm_id }}'
+    memory: '{{ vm_mem }}'
+    cores: '{{ vm_cores }}'
+    nameservers:
+      - '1.1.1.1'
+      - '8.8.8.8'
+    ipconfig:
+      ipconfig0: 'ip={{ wan_ip }},gw={{ wan_gw }}'
+    update: yes
+  when: lan_ip is undefined 
+
+- name: authentication
+  ansible.builtin.uri:
+    url: "https://{{ prox_ip }}:8006/api2/json/access/ticket"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      username: '{{ api_username }}'
+      password: '{{ api_passwd }}'
+    validate_certs: no
+  register: auth
+
+- name: resize disk
+  ansible.builtin.uri:
+    url: "https://{{ prox_ip }}:8006/api2/json/nodes/{{ target_prox }}/qemu/{{ vm_id }}/resize"
+    method: PUT
+    headers: 
+      Cookie: "PVEAuthCookie={{ auth.json.data.ticket }}"
+      CSRFPreventionToken: "{{ auth.json.data.CSRFPreventionToken }}"
+    body_format: form-urlencoded
+    body:
+      disk: scsi0
+      size: "{{ vm_storage_size }}G"
+    validate_certs: no
+
+- name: get info for net adapters
+  ansible.builtin.uri:
+    url: "https://{{ prox_ip }}:8006/api2/json/nodes/{{ target_prox }}/qemu/{{ vm_id }}/config"
+    method: GET
+    validate_certs: no
+    return_content: yes
+    headers:
+      Cookie: "PVEAuthCookie={{ auth.json.data.ticket }}"
+      CSRFPreventionToken: "{{ auth.json.data.CSRFPreventionToken }}"
+  register: vmbr_net_api_output
+
+- name: set vars for nic settings net0
+  set_fact:
+    net0_bridge_used={{ vmbr_net_api_output["json"]["data"]["net0"].split(',')[1].replace('bridge=','') }}
+
+- name: set vars for nic settings net1
+  set_fact:
+    net1_bridge_used={{ vmbr_net_api_output["json"]["data"]["net1"].split(',')[1].replace('bridge=','') }}
+  when: lan_ip is defined
+
+- name: update nic information for net0
+  community.general.proxmox_nic:
+    api_host: "{{ prox_ip }}"
+    api_user: '{{ api_username }}'
+    api_password: '{{ api_passwd }}'
+    name: '{{ vm_name }}'
+    vmid: '{{ vm_id }}'
+    interface: net0
+    bridge: '{{ net0_bridge_used }}'
+    tag: "{{ wan_vlan }}"
+
+- name: update nic information for net1
+  community.general.proxmox_nic:
+    api_host: "{{ prox_ip }}"
+    api_user: '{{ api_username }}'
+    api_password: '{{ api_passwd }}'
+    name: '{{ vm_name }}'
+    vmid: '{{ vm_id }}'    
+    interface: net1
+    bridge: '{{ net1_bridge_used }}'
+    tag: "{{ lan_vlan }}"
+  when: lan_ip is defined
+
+- name: Startup the Created VM
+  community.general.proxmox_kvm:
+    api_host: "{{ prox_ip }}"
+    node:  "{{ prox_host }}"
+    api_user: '{{ api_username }}'
+    api_password: '{{ api_passwd }}'
+    name: '{{ vm_name }}'
+    vmid: '{{ vm_id }}'
+    state: started

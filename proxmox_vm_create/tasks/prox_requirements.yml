@@ -1,0 +1,12 @@
+---
+- name: make sure requirements are met
+  ansible.builtin.apt:
+    name: '{{ item }}' 
+    state: present
+  loop:
+    - python3-apt
+    - python3-pip
+
+- name: install required pip modules
+  ansible.builtin.pip:
+    name: proxmoxer

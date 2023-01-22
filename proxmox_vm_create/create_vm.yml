@@ -1,0 +1,18 @@
+---
+- hosts: localhost
+  gather_facts: no
+  connection: local
+
+  pre_tasks:
+  - add_host:
+      name: "{{ bastion_ip }}"
+    when: groups['all'] | length == 0 and bastion_ip is defined
+
+- hosts: all
+  become: yes
+  vars_files:
+    - vars/pub_vars.yml
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/prox_requirements.yml
+  tasks:
+  - ansible.builtin.import_tasks: tasks/vm_create.yml

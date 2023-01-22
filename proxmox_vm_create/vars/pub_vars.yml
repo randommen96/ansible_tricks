@@ -1,0 +1,19 @@
+---
+bastion_ip:
+prox_ip:
+prox_host:
+target_prox:
+vm_name:
+vm_id:
+vm_template_id:
+vm_cores: 2
+vm_mem: 2048
+vm_storage_location:
+vm_storage_size: 10
+wan_vlan: 1
+wan_ip: 1.1.1.2/24
+wan_gw: 1.1.1.1
+lan_vlan:
+lan_gw:
+api_username: "user@pam"
+api_passwd: "P@ssword"
