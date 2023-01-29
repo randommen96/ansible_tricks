@@ -1,0 +1,9 @@
+---
+- hosts: localhost
+  gather_facts: no
+  connection: local
+
+  vars_files:
+    - vars/pub_vars.yml
+  tasks:
+  - ansible.builtin.import_tasks: tasks/vm_create.yml

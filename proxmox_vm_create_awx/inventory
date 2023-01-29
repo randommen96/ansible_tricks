@@ -1,0 +1,7 @@
+[testemptygroup]
+
+[all:vars]
+ansible_user=root
+
+[all]
+1.1.1.3:22
