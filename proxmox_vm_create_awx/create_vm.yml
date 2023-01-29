@@ -2,8 +2,9 @@
 - hosts: localhost
   gather_facts: no
   connection: local
-
+  become: yes
   vars_files:
     - vars/pub_vars.yml
   tasks:
+  - ansible.builtin.import_tasks: tasks/prox_requirements.yml
   - ansible.builtin.import_tasks: tasks/vm_create.yml
